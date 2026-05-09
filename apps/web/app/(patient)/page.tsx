@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ClinicCard } from '@/components/wait-times/clinic-card';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import type { ClinicWithWaitTime } from '@lhn/shared';
 
 export default function HomePage() {
@@ -47,6 +48,7 @@ export default function HomePage() {
         <p className="text-xs opacity-80 ml-8 mt-0.5">
           Cold Lake • Bonnyville • Lac La Biche • St. Paul
         </p>
+        <ViewToggle />
       </header>
 
       {/* Nearest Available Banner */}

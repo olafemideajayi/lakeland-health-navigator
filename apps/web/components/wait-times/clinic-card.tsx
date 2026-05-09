@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import type { ClinicWithWaitTime } from '@lhn/shared';
 
 function getWaitColor(minutes: number | undefined) {
@@ -62,17 +63,12 @@ export function ClinicCard({ clinic }: { clinic: ClinicWithWaitTime }) {
             ))}
           </div>
           <div className="flex gap-2 mt-3">
-            <a href={`tel:${clinic.phone}`} className="flex-1 btn-primary text-center">
+            <a href={`tel:${clinic.phone}`} className="flex-1 py-2.5 bg-primary text-white text-center rounded-lg text-xs font-semibold">
               📞 Call
             </a>
-            <a
-              href={`https://maps.google.com/?q=${clinic.lat},${clinic.lng}`}
-              target="_blank"
-              rel="noopener"
-              className="flex-1 btn-outline text-center"
-            >
-              🗺 Directions
-            </a>
+            <Link href={`/clinic/${clinic.slug}`} className="flex-1 py-2.5 border border-primary text-primary text-center rounded-lg text-xs font-semibold">
+              View Details →
+            </Link>
           </div>
         </div>
       )}
