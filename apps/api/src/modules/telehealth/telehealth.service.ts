@@ -48,4 +48,18 @@ export class TelehealthService {
       data: { status: 'CANCELLED' },
     });
   }
+
+  async getAppointmentById(id: string) {
+    return this.prisma.appointment.findUnique({
+      where: { id },
+      include: { doctor: true },
+    });
+  }
+
+  async setRoomUrl(id: string, roomUrl: string) {
+    return this.prisma.appointment.update({
+      where: { id },
+      data: { dailyRoomUrl: roomUrl },
+    });
+  }
 }

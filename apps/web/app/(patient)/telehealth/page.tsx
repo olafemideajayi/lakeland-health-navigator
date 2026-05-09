@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import type { DoctorProfile } from '@lhn/shared';
 import { SPECIALTIES } from '@lhn/shared';
 
@@ -68,9 +69,14 @@ export default function TelehealthPage() {
                   <p className="text-xs text-gray-500 mt-0.5">⭐ {doc.rating} • {doc.ratingCount} consultations</p>
                 </div>
               </div>
-              <button className="w-full mt-3 bg-primary text-white py-2.5 rounded-lg text-sm font-semibold">
-                📹 Book Video Call
-              </button>
+              <div className="flex gap-2 mt-3">
+                <Link href={`/telehealth/book/${doc.id}`} className="flex-1 py-2.5 bg-primary text-white text-center rounded-lg text-sm font-semibold">
+                  📹 Book Video Call
+                </Link>
+                <Link href={`/telehealth/doctor/${doc.id}`} className="py-2.5 px-3 border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold">
+                  Profile
+                </Link>
+              </div>
             </div>
           ))
         )}
