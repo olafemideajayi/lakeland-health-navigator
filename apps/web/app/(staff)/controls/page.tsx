@@ -1,29 +1,46 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useStaffAuth, staffFetch } from '../../../lib/use-staff-auth';
 
 export default function StaffControlsPage() {
+  const { user, token } = useStaffAuth();
   const [waitMinutes, setWaitMinutes] = useState(15);
   const [doctorsOnDuty, setDoctorsOnDuty] = useState(3);
   const [walkInOpen, setWalkInOpen] = useState(true);
   const [telehealthOpen, setTelehealthOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !user?.clinicId) return;
+    staffFetch(`/api/clinics/${user.clinicId}`, token)
+      .then((clinic: any) => {
+        if (clinic.waitTimes?.[0]) {
+          setWaitMinutes(clinic.waitTimes[0].minutes);
+        }
+        if (clinic.walkInOpen !== undefined) setWalkInOpen(clinic.walkInOpen);
+        if (clinic.telehealthOpen !== undefined) setTelehealthOpen(clinic.telehealthOpen);
+      })
+      .catch(() => {});
+  }, [token, user?.clinicId]);
 
   async function updateWaitTime() {
+    if (!token || !user?.clinicId) return;
     setSaving(true);
     try {
-      await fetch('/api/staff/wait-times', {
+      await staffFetch('/api/staff/wait-times', token, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clinicId: 'demo-clinic',
+          clinicId: user.clinicId,
           minutes: waitMinutes,
           patientsWaiting: Math.ceil(waitMinutes / 5),
           capacity: 12,
         }),
       });
       setSaved(true);
+      setLastUpdated('just now');
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       console.error(e);
@@ -35,7 +52,7 @@ export default function StaffControlsPage() {
     <div className="pb-20">
       <header className="bg-primary text-white px-5 pt-12 pb-5">
         <h1 className="text-xl font-bold">⚙️ Clinic Controls</h1>
-        <p className="text-xs opacity-80 mt-1">Cold Lake Health Centre</p>
+        <p className="text-xs opacity-80 mt-1">{user?.name || 'Staff'}</p>
       </header>
 
       <div className="p-4 space-y-4">
@@ -45,7 +62,9 @@ export default function StaffControlsPage() {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-sm font-bold text-gray-800">Current Wait Time</h3>
-                <p className="text-xs text-gray-400">Last updated 2 min ago</p>
+                <p className="text-xs text-gray-400">
+                  {lastUpdated ? `Updated ${lastUpdated}` : 'Adjust and save'}
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <button

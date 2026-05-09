@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ClinicsService } from './clinics.service';
 
 @Controller('clinics')
@@ -10,8 +10,10 @@ export class ClinicsController {
     return this.clinicsService.findAll();
   }
 
-  @Get(':slug')
-  async findBySlug(@Param('slug') slug: string) {
-    return this.clinicsService.findBySlug(slug);
+  @Get(':idOrSlug')
+  async findOne(@Param('idOrSlug') idOrSlug: string) {
+    const byId = await this.clinicsService.findById(idOrSlug);
+    if (byId) return byId;
+    return this.clinicsService.findBySlug(idOrSlug);
   }
 }

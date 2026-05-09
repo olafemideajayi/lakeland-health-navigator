@@ -40,7 +40,7 @@ export class DailyService {
       throw new Error(`Daily.co room creation failed: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<DailyRoom>;
   }
 
   async createMeetingToken(roomName: string, userName: string, isOwner: boolean): Promise<string> {
@@ -66,7 +66,7 @@ export class DailyService {
       throw new Error(`Daily.co token creation failed: ${response.status}`);
     }
 
-    const data: DailyMeetingToken = await response.json();
+    const data = await response.json() as DailyMeetingToken;
     return data.token;
   }
 

@@ -24,7 +24,11 @@ export class AuthService {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new UnauthorizedException();
 
-    return this.generateTokens(user.id, user.role);
+    const tokens = await this.generateTokens(user.id, user.role);
+    return {
+      access_token: tokens.accessToken,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, clinicId: user.clinicId },
+    };
   }
 
   async generateTokens(userId: string, role: string) {

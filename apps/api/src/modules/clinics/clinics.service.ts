@@ -45,11 +45,16 @@ export class ClinicsService {
   }
 
   async findById(id: string) {
-    return this.prisma.clinic.findUnique({
+    const clinic = await this.prisma.clinic.findUnique({
       where: { id },
-      include: {
-        doctors: true,
-      },
+      include: { doctors: true },
     });
+    if (!clinic) return null;
+    const waitTimes = await this.prisma.waitTime.findMany({
+      where: { clinicId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+    });
+    return { ...clinic, waitTimes };
   }
 }
