@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { DoctorProfile } from '@lhn/shared';
 import { SPECIALTIES } from '@lhn/shared';
+import { DoctorCardSkeleton } from '@/components/ui/skeleton';
 
 export default function TelehealthPage() {
   const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
@@ -53,7 +54,9 @@ export default function TelehealthPage() {
       {/* Doctor list */}
       <div className="px-4 space-y-3">
         {loading ? (
-          <p className="text-center py-12 text-gray-400">Loading specialists...</p>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => <DoctorCardSkeleton key={i} />)}
+          </div>
         ) : doctors.length === 0 ? (
           <p className="text-center py-12 text-gray-400">No specialists found</p>
         ) : (

@@ -3,6 +3,8 @@ import './globals.css';
 import { ServiceWorkerRegister } from '@/components/ui/service-worker-register';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { InstallPrompt } from '@/components/ui/install-prompt';
+import { PhiaConsent } from '@/components/ui/phia-consent';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 export const metadata: Metadata = {
   title: 'Lakeland Health Navigator',
@@ -23,7 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-gray-50 min-h-screen">
         <ServiceWorkerRegister />
         <OfflineBanner />
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+        <PhiaConsent />
         <InstallPrompt />
       </body>
     </html>

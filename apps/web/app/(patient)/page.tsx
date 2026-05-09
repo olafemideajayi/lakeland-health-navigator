@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ClinicCard } from '@/components/wait-times/clinic-card';
 import { ViewToggle } from '@/components/ui/view-toggle';
+import { ClinicCardSkeleton } from '@/components/ui/skeleton';
 import type { ClinicWithWaitTime } from '@lhn/shared';
 
 export default function HomePage() {
@@ -70,7 +71,9 @@ export default function HomePage() {
       <div className="px-4 pt-4">
         <h2 className="text-sm font-bold text-gray-800 mb-3">Nearby Clinics</h2>
         {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading clinics...</div>
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => <ClinicCardSkeleton key={i} />)}
+          </div>
         ) : (
           <div className="space-y-3">
             {clinics.map((clinic) => (
