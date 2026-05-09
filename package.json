@@ -1,0 +1,24 @@
+{
+  "name": "lakeland-health-navigator",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:migrate": "turbo db:migrate --filter=@lhn/db",
+    "db:seed": "turbo db:seed --filter=@lhn/db",
+    "db:generate": "turbo db:generate --filter=@lhn/db"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@10.8.0"
+}

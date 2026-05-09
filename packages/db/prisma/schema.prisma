@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  STAFF
+  ADMIN
+}
+
+enum TriageLevel {
+  EMERGENCY
+  URGENT
+  WALK_IN
+  TELEHEALTH
+  SELF_CARE
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String?       @unique
+  phone        String?       @unique
+  name         String
+  passwordHash String?
+  role         Role          @default(PATIENT)
+  clinicId     String?
+  clinic       Clinic?       @relation(fields: [clinicId], references: [id])
+  appointments Appointment[]
+  queueEntries QueueEntry[]
+  auditLogs    AuditLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([role])
+}
+
+model Clinic {
+  id             String       @id @default(cuid())
+  name           String
+  slug           String       @unique
+  address        String
+  city           String
+  lat            Float
+  lng            Float
+  phone          String
+  hours          Json
+  services       String[]
+  walkInOpen     Boolean      @default(true)
+  telehealthOpen Boolean      @default(true)
+  staff          User[]
+  doctors        Doctor[]
+  waitTimes      WaitTime[]
+  queueEntries   QueueEntry[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Doctor {
+  id           String        @id @default(cuid())
+  name         String
+  specialty    String
+  bio          String?
+  photoUrl     String?
+  rating       Float         @default(0)
+  ratingCount  Int           @default(0)
+  clinicId     String
+  clinic       Clinic        @relation(fields: [clinicId], references: [id])
+  onDuty       Boolean       @default(false)
+  telehealth   Boolean       @default(false)
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([specialty])
+  @@index([clinicId, onDuty])
+}
+
+model WaitTime {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id])
+  minutes         Int
+  patientsWaiting Int
+  capacity        Int
+  updatedBy       String
+  createdAt       DateTime @default(now())
+
+  @@index([clinicId, createdAt])
+}
+
+model Appointment {
+  id           String            @id @default(cuid())
+  patientId    String
+  patient      User              @relation(fields: [patientId], references: [id])
+  doctorId     String
+  doctor       Doctor            @relation(fields: [doctorId], references: [id])
+  startTime    DateTime
+  endTime      DateTime
+  status       AppointmentStatus @default(SCHEDULED)
+  type         String
+  dailyRoomUrl String?
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([doctorId, startTime])
+  @@index([patientId, startTime])
+}
+
+model QueueEntry {
+  id          String      @id @default(cuid())
+  clinicId    String
+  clinic      Clinic      @relation(fields: [clinicId], references: [id])
+  patientId   String
+  patient     User        @relation(fields: [patientId], references: [id])
+  triageLevel TriageLevel
+  reason      String
+  checkedInAt DateTime    @default(now())
+  seenAt      DateTime?
+  status      String      @default("waiting")
+
+  @@index([clinicId, status, checkedInAt])
+}
+
+model TriageSession {
+  id              String      @id @default(cuid())
+  sessionData     Json
+  result          TriageLevel
+  recommendation  String
+  disclaimerAcked Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  resource  String
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([resource, createdAt])
+}
