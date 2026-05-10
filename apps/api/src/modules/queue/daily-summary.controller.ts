@@ -25,7 +25,7 @@ export class DailySummaryController {
     }
 
     const avg = Math.round(
-      waitTimes.reduce((sum, wt) => sum + wt.minutes, 0) / waitTimes.length,
+      waitTimes.reduce((sum: number, wt) => sum + wt.minutes, 0) / waitTimes.length,
     );
 
     const peak = waitTimes.reduce((max, wt) => (wt.minutes > max.minutes ? wt : max), waitTimes[0]);
