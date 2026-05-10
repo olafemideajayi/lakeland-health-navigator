@@ -8,6 +8,7 @@ import { WaitTimesModule } from './modules/wait-times/wait-times.module';
 import { TriageModule } from './modules/triage/triage.module';
 import { TelehealthModule } from './modules/telehealth/telehealth.module';
 import { QueueModule } from './modules/queue/queue.module';
+import { HealthModule } from './modules/health/health.module';
 import { PrismaModule } from './common/prisma.module';
 import { RedisModule } from './common/redis.module';
 import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
@@ -23,6 +24,7 @@ import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor
     TriageModule,
     TelehealthModule,
     QueueModule,
+    HealthModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: AuditLogInterceptor },
