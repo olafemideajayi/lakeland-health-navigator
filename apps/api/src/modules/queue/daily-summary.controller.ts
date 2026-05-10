@@ -25,10 +25,10 @@ export class DailySummaryController {
     }
 
     const avg = Math.round(
-      waitTimes.reduce((sum, wt) => sum + wt.minutes, 0) / waitTimes.length,
+      waitTimes.reduce((sum: number, wt: typeof waitTimes[number]) => sum + wt.minutes, 0) / waitTimes.length,
     );
 
-    const peak = waitTimes.reduce((max, wt) => (wt.minutes > max.minutes ? wt : max), waitTimes[0]);
+    const peak = waitTimes.reduce((max: typeof waitTimes[number], wt: typeof waitTimes[number]) => (wt.minutes > max.minutes ? wt : max), waitTimes[0]);
     const peakDate = new Date(peak.createdAt);
     const peakHour = peakDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 

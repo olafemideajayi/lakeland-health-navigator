@@ -15,7 +15,7 @@ export class ClinicsService {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
     const withWaitTimes = await Promise.all(
-      clinics.map(async (clinic) => {
+      clinics.map(async (clinic: typeof clinics[number]) => {
         const [latestStaffUpdate, recentReports] = await Promise.all([
           this.prisma.waitTime.findFirst({
             where: { clinicId: clinic.id },
