@@ -16,6 +16,8 @@ export interface ClinicWithWaitTime {
     patientsWaiting: number;
     capacity: number;
     updatedAt: string;
+    source?: 'staff' | 'blended' | 'none';
+    reportCount?: number;
   } | null;
 }
 

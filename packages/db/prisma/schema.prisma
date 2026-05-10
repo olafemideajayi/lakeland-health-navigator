@@ -48,24 +48,25 @@ model User {
 }
 
 model Clinic {
-  id             String       @id @default(cuid())
-  name           String
-  slug           String       @unique
-  address        String
-  city           String
-  lat            Float
-  lng            Float
-  phone          String
-  hours          Json
-  services       String[]
-  walkInOpen     Boolean      @default(true)
-  telehealthOpen Boolean      @default(true)
-  staff          User[]
-  doctors        Doctor[]
-  waitTimes      WaitTime[]
-  queueEntries   QueueEntry[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                String              @id @default(cuid())
+  name              String
+  slug              String              @unique
+  address           String
+  city              String
+  lat               Float
+  lng               Float
+  phone             String
+  hours             Json
+  services          String[]
+  walkInOpen        Boolean             @default(true)
+  telehealthOpen    Boolean             @default(true)
+  staff             User[]
+  doctors           Doctor[]
+  waitTimes         WaitTime[]
+  queueEntries      QueueEntry[]
+  patientWaitReports PatientWaitReport[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 }
 
 model Doctor {
@@ -142,6 +143,17 @@ model TriageSession {
   recommendation  String
   disclaimerAcked Boolean     @default(false)
   createdAt       DateTime    @default(now())
+}
+
+model PatientWaitReport {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id])
+  minutesWaited Int
+  visitReason   String?
+  reportedAt    DateTime @default(now())
+
+  @@index([clinicId, reportedAt])
 }
 
 model AuditLog {
