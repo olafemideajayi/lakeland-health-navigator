@@ -70,11 +70,14 @@ model Clinic {
 }
 
 model Doctor {
-  id           String        @id @default(cuid())
-  name         String
-  specialty    String
-  bio          String?
-  photoUrl     String?
+  id             String        @id @default(cuid())
+  name           String
+  email          String?       @unique
+  phone          String?
+  licenseNumber  String?
+  specialty      String
+  bio            String?
+  photoUrl       String?
   rating       Float         @default(0)
   ratingCount  Int           @default(0)
   clinicId     String
@@ -169,4 +172,24 @@ model AuditLog {
 
   @@index([userId, createdAt])
   @@index([resource, createdAt])
+}
+
+model DoctorInvite {
+  id            String    @id @default(cuid())
+  email         String
+  phone         String?
+  name          String
+  specialty     String
+  clinicName    String?
+  token         String    @unique
+  status        String    @default("pending") // pending, accepted, expired
+  agreementSigned Boolean @default(false)
+  signedAt      DateTime?
+  doctorId      String?   // linked after they complete onboarding
+  sentAt        DateTime  @default(now())
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+
+  @@index([email])
+  @@index([token])
 }
