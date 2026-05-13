@@ -1,4 +1,5 @@
 import { PrismaClient, Role } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -167,19 +168,79 @@ async function main() {
     ],
   });
 
-  // Seed a staff user
+  // Seed staff accounts — one per clinic with hashed passwords
+  const staffPassword = await bcrypt.hash('Lakeland2026!', 10);
+
   await prisma.user.upsert({
     where: { email: 'staff@coldlake.health' },
-    update: {},
+    update: { passwordHash: staffPassword, name: 'Cold Lake Admin' },
     create: {
-      name: 'Clinic Admin',
+      name: 'Cold Lake Admin',
       email: 'staff@coldlake.health',
+      passwordHash: staffPassword,
       role: Role.STAFF,
       clinicId: coldLake.id,
     },
   });
 
+  await prisma.user.upsert({
+    where: { email: 'staff@bonnyville.health' },
+    update: { passwordHash: staffPassword },
+    create: {
+      name: 'Bonnyville Admin',
+      email: 'staff@bonnyville.health',
+      passwordHash: staffPassword,
+      role: Role.STAFF,
+      clinicId: bonnyville.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'staff@laclabiche.health' },
+    update: { passwordHash: staffPassword },
+    create: {
+      name: 'Lac La Biche Admin',
+      email: 'staff@laclabiche.health',
+      passwordHash: staffPassword,
+      role: Role.STAFF,
+      clinicId: lacLaBiche.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'staff@stpaul.health' },
+    update: { passwordHash: staffPassword },
+    create: {
+      name: 'St. Paul Admin',
+      email: 'staff@stpaul.health',
+      passwordHash: staffPassword,
+      role: Role.STAFF,
+      clinicId: stPaul.id,
+    },
+  });
+
+  // Seed an admin user
+  const adminPassword = await bcrypt.hash('Admin2026!', 10);
+  await prisma.user.upsert({
+    where: { email: 'admin@lakelandhealth.ca' },
+    update: { passwordHash: adminPassword },
+    create: {
+      name: 'System Admin',
+      email: 'admin@lakelandhealth.ca',
+      passwordHash: adminPassword,
+      role: Role.ADMIN,
+      clinicId: coldLake.id,
+    },
+  });
+
   console.log('Database seeded successfully');
+  console.log('');
+  console.log('Staff accounts created:');
+  console.log('  staff@coldlake.health     / Lakeland2026!');
+  console.log('  staff@bonnyville.health   / Lakeland2026!');
+  console.log('  staff@laclabiche.health   / Lakeland2026!');
+  console.log('  staff@stpaul.health       / Lakeland2026!');
+  console.log('  admin@lakelandhealth.ca   / Admin2026!');
 }
 
 main()
