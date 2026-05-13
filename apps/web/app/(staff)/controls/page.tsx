@@ -3,6 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useStaffAuth, staffFetch } from '../../../lib/use-staff-auth';
 
+interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  onDuty: boolean;
+  telehealth: boolean;
+}
+
 export default function StaffControlsPage() {
   const { user, token } = useStaffAuth();
   const [waitMinutes, setWaitMinutes] = useState(15);
@@ -12,6 +20,8 @@ export default function StaffControlsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [togglingDoctor, setTogglingDoctor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token || !user?.clinicId) return;
@@ -24,7 +34,27 @@ export default function StaffControlsPage() {
         if (clinic.telehealthOpen !== undefined) setTelehealthOpen(clinic.telehealthOpen);
       })
       .catch(() => {});
+
+    staffFetch(`/api/staff/doctors?clinicId=${user.clinicId}`, token)
+      .then((data: Doctor[]) => setDoctors(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, [token, user?.clinicId]);
+
+  async function toggleDoctorOnCall(doctorId: string) {
+    if (!token) return;
+    setTogglingDoctor(doctorId);
+    try {
+      const updated = await staffFetch(`/api/staff/doctors/${doctorId}/toggle-oncall`, token, {
+        method: 'PATCH',
+      });
+      setDoctors((prev) =>
+        prev.map((d) => (d.id === doctorId ? { ...d, onDuty: updated.onDuty } : d)),
+      );
+    } catch (e) {
+      console.error(e);
+    }
+    setTogglingDoctor(null);
+  }
 
   async function updateWaitTime() {
     if (!token || !user?.clinicId) return;
@@ -141,6 +171,42 @@ export default function StaffControlsPage() {
             </div>
           </div>
         </div>
+
+        {/* Doctor On-Call */}
+        {doctors.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-50">
+              <h3 className="text-sm font-bold text-gray-800">Doctor On-Call (Telehealth)</h3>
+              <p className="text-xs text-gray-400">Toggle to make doctors available for instant video consults</p>
+            </div>
+            {doctors.filter((d) => d.telehealth).map((doc) => (
+              <div key={doc.id} className="p-4 border-b border-gray-50 last:border-b-0">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-800">{doc.name}</h4>
+                    <p className="text-xs text-gray-400">{doc.specialty}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {doc.onDuty && (
+                      <span className="text-[10px] font-bold text-green-600 uppercase">Live</span>
+                    )}
+                    <button
+                      onClick={() => toggleDoctorOnCall(doc.id)}
+                      disabled={togglingDoctor === doc.id}
+                      className={`w-12 h-7 rounded-full relative transition-colors ${
+                        doc.onDuty ? 'bg-green-500' : 'bg-gray-300'
+                      } ${togglingDoctor === doc.id ? 'opacity-60' : ''}`}
+                    >
+                      <span className={`absolute w-5 h-5 bg-white rounded-full top-1 shadow-sm transition-transform ${
+                        doc.onDuty ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Save button */}
         <button

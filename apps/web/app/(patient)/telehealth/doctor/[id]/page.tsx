@@ -107,13 +107,34 @@ export default function DoctorProfilePage() {
           <p className="text-xs text-gray-400 italic">&quot;Very thorough and caring. Saved me a trip to Edmonton.&quot;</p>
         </div>
 
-        {/* Book button */}
-        <Link
-          href={`/telehealth/book/${doctor.id}`}
-          className="block w-full py-3.5 bg-primary text-white text-center rounded-xl font-semibold"
-        >
-          📹 Book Video Consultation
-        </Link>
+        {/* Action buttons */}
+        {doctor.onDuty && doctor.telehealth ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 justify-center mb-1">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-sm font-semibold text-green-600">Available for instant consult</span>
+            </div>
+            <Link
+              href={`/telehealth/book/${doctor.id}`}
+              className="block w-full py-3.5 bg-green-500 text-white text-center rounded-xl font-semibold hover:bg-green-600 transition-colors"
+            >
+              Connect Now
+            </Link>
+            <Link
+              href={`/telehealth/book/${doctor.id}`}
+              className="block w-full py-3 border border-gray-200 text-gray-600 text-center rounded-xl font-semibold"
+            >
+              Book for Later
+            </Link>
+          </div>
+        ) : (
+          <Link
+            href={`/telehealth/book/${doctor.id}`}
+            className="block w-full py-3.5 bg-primary text-white text-center rounded-xl font-semibold"
+          >
+            Book Video Consultation
+          </Link>
+        )}
       </div>
     </div>
   );

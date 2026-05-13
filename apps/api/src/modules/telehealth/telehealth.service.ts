@@ -73,4 +73,31 @@ export class TelehealthService {
       data: { doctorToken },
     });
   }
+
+  async getDoctorById(id: string) {
+    return this.prisma.doctor.findUnique({ where: { id } });
+  }
+
+  async updateAppointmentStatus(id: string, status: string) {
+    return this.prisma.appointment.update({
+      where: { id },
+      data: { status: status as any },
+    });
+  }
+
+  async toggleDoctorOnCall(doctorId: string) {
+    const doctor = await this.prisma.doctor.findUnique({ where: { id: doctorId } });
+    if (!doctor) return null;
+    return this.prisma.doctor.update({
+      where: { id: doctorId },
+      data: { onDuty: !doctor.onDuty },
+    });
+  }
+
+  async getClinicDoctors(clinicId: string) {
+    return this.prisma.doctor.findMany({
+      where: { clinicId },
+      orderBy: [{ onDuty: 'desc' }, { name: 'asc' }],
+    });
+  }
 }

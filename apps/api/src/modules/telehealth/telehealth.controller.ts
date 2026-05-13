@@ -82,6 +82,58 @@ export class TelehealthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('appointments/connect-now')
+  async connectNow(
+    @Request() req: any,
+    @Body() body: { doctorId: string; reason?: string },
+  ) {
+    // Verify doctor is on-call
+    const doctor = await this.telehealthService.getDoctorById(body.doctorId);
+    if (!doctor || !doctor.onDuty || !doctor.telehealth) {
+      throw new NotFoundException('Doctor is not available for on-call telehealth');
+    }
+
+    // Create instant appointment (starts now)
+    const now = new Date();
+    const appointment = await this.telehealthService.bookAppointment(
+      req.user.sub,
+      body.doctorId,
+      now,
+      body.reason || 'On-call consultation',
+    );
+
+    // Mark as in-progress immediately
+    await this.telehealthService.updateAppointmentStatus(appointment.id, 'IN_PROGRESS');
+
+    // Create Daily.co room
+    const room = await this.dailyService.createRoom(appointment.id);
+    await this.telehealthService.setRoomUrl(appointment.id, room.url);
+
+    // Generate doctor access token
+    const doctorToken = crypto
+      .createHash('sha256')
+      .update(`${appointment.id}-${process.env.JWT_SECRET || 'salt'}`)
+      .digest('hex')
+      .slice(0, 16);
+    await this.telehealthService.setDoctorToken(appointment.id, doctorToken);
+
+    // Generate patient meeting token
+    const roomName = `appt-${appointment.id}`;
+    const patientMeetingToken = await this.dailyService.createMeetingToken(
+      roomName,
+      'Patient',
+      false,
+    );
+
+    return {
+      appointment: { ...appointment, dailyRoomUrl: room.url, doctorToken },
+      roomUrl: room.url,
+      token: patientMeetingToken,
+      doctorLink: `/join/${appointment.id}?token=${doctorToken}`,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch('appointments/:id/cancel')
   async cancelAppointment(@Request() req: any, @Param('id') id: string) {
     return this.telehealthService.cancelAppointment(id, req.user.sub);
