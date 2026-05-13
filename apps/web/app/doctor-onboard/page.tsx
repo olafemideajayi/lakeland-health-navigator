@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface InviteData {
@@ -17,6 +17,14 @@ interface ClinicOption {
 }
 
 export default function DoctorOnboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-400">Loading...</p></div>}>
+      <DoctorOnboardInner />
+    </Suspense>
+  );
+}
+
+function DoctorOnboardInner() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
 

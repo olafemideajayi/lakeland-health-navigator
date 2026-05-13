@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { VideoRoom } from '@/components/telehealth/video-room';
 
@@ -16,6 +16,14 @@ interface DoctorJoinData {
 }
 
 export default function DoctorJoinPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-900 flex items-center justify-center"><p className="text-gray-400">Loading...</p></div>}>
+      <DoctorJoinInner />
+    </Suspense>
+  );
+}
+
+function DoctorJoinInner() {
   const params = useParams();
   const searchParams = useSearchParams();
   const accessToken = searchParams.get('token') || '';
