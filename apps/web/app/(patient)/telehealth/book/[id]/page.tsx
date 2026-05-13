@@ -22,26 +22,43 @@ interface TimeSlot {
   available: boolean;
 }
 
-function generateTimeSlots(): TimeSlot[] {
+function generateTimeSlots(): { today: TimeSlot[]; tomorrow: TimeSlot[] } {
   const now = new Date();
-  const slots: TimeSlot[] = [];
-  const baseHour = now.getHours() + 1;
+  const localHour = now.getHours();
+  const today: TimeSlot[] = [];
+  const tomorrow: TimeSlot[] = [];
 
-  for (let i = 0; i < 8; i++) {
-    const hour = baseHour + Math.floor(i / 2);
-    const minutes = (i % 2) * 30;
-    if (hour >= 20) break;
-
-    const time = new Date();
-    time.setHours(hour, minutes, 0, 0);
-
-    slots.push({
-      time: time.toISOString(),
-      label: time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-      available: Math.random() > 0.3,
-    });
+  // Generate remaining slots for today (starting from next full hour, until 7:30 PM)
+  const startHour = Math.max(9, localHour + 1);
+  for (let hour = startHour; hour < 20; hour++) {
+    for (const min of [0, 30]) {
+      if (hour === startHour && min === 0 && now.getMinutes() > 30) continue;
+      const time = new Date();
+      time.setHours(hour, min, 0, 0);
+      today.push({
+        time: time.toISOString(),
+        label: time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        available: Math.random() > 0.25,
+      });
+    }
   }
-  return slots;
+
+  // Always generate tomorrow's slots (9 AM to 5 PM)
+  const tmrw = new Date();
+  tmrw.setDate(tmrw.getDate() + 1);
+  for (let hour = 9; hour < 17; hour++) {
+    for (const min of [0, 30]) {
+      const time = new Date(tmrw);
+      time.setHours(hour, min, 0, 0);
+      tomorrow.push({
+        time: time.toISOString(),
+        label: time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        available: Math.random() > 0.2,
+      });
+    }
+  }
+
+  return { today, tomorrow };
 }
 
 export default function BookAppointmentPage() {
@@ -51,11 +68,12 @@ export default function BookAppointmentPage() {
   const [step, setStep] = useState<'time' | 'reason' | 'confirm'>('time');
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [reason, setReason] = useState('');
-  const [timeSlots] = useState(generateTimeSlots);
+  const [slotData] = useState(generateTimeSlots);
   const [booking, setBooking] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [dayTab, setDayTab] = useState<'today' | 'tomorrow'>('today');
 
   useEffect(() => {
     fetch('/api/doctors')
@@ -137,7 +155,7 @@ export default function BookAppointmentPage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Time</span>
-                <span className="font-semibold text-gray-800">{selectedSlot?.label} (MST)</span>
+                <span className="font-semibold text-gray-800">{dayTab === 'tomorrow' ? 'Tomorrow' : 'Today'} {selectedSlot?.label}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Duration</span>
@@ -218,26 +236,64 @@ export default function BookAppointmentPage() {
         {step === 'time' && (
           <>
             <h2 className="text-[17px] font-bold text-gray-800 mb-1">Select a time</h2>
-            <p className="text-xs text-gray-500 mb-4">Today&apos;s available slots</p>
+            <p className="text-xs text-gray-500 mb-4">Choose an available slot</p>
 
-            <div className="grid grid-cols-3 gap-2 mb-6">
-              {timeSlots.map((slot) => (
-                <button
-                  key={slot.time}
-                  disabled={!slot.available}
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`py-3 rounded-xl text-sm font-semibold border transition-all ${
-                    !slot.available
-                      ? 'border-gray-100 text-gray-300 cursor-not-allowed'
-                      : selectedSlot?.time === slot.time
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-gray-200 text-gray-700 hover:border-primary hover:text-primary'
-                  }`}
-                >
-                  {slot.label}
-                </button>
-              ))}
+            {/* Day tabs */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => { setDayTab('today'); setSelectedSlot(null); }}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+                  dayTab === 'today' ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => { setDayTab('tomorrow'); setSelectedSlot(null); }}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+                  dayTab === 'tomorrow' ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200'
+                }`}
+              >
+                Tomorrow
+              </button>
             </div>
+
+            {(() => {
+              const slots = dayTab === 'today' ? slotData.today : slotData.tomorrow;
+              if (slots.length === 0) {
+                return (
+                  <div className="text-center py-8 mb-6">
+                    <p className="text-gray-400 text-sm">No more slots available today</p>
+                    <button
+                      onClick={() => { setDayTab('tomorrow'); setSelectedSlot(null); }}
+                      className="text-primary text-sm font-semibold mt-2"
+                    >
+                      View tomorrow&apos;s slots &rarr;
+                    </button>
+                  </div>
+                );
+              }
+              return (
+                <div className="grid grid-cols-3 gap-2 mb-6">
+                  {slots.map((slot) => (
+                    <button
+                      key={slot.time}
+                      disabled={!slot.available}
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`py-3 rounded-xl text-sm font-semibold border transition-all ${
+                        !slot.available
+                          ? 'border-gray-100 text-gray-300 cursor-not-allowed'
+                          : selectedSlot?.time === slot.time
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-gray-200 text-gray-700 hover:border-primary hover:text-primary'
+                      }`}
+                    >
+                      {slot.label}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
 
             <button
               disabled={!selectedSlot}
@@ -297,7 +353,7 @@ export default function BookAppointmentPage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Time</span>
-                <span className="font-semibold text-gray-800">{selectedSlot?.label} today</span>
+                <span className="font-semibold text-gray-800">{dayTab === 'tomorrow' ? 'Tomorrow' : 'Today'} {selectedSlot?.label}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Duration</span>
