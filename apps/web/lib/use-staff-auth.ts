@@ -63,13 +63,14 @@ export function getStaffToken(): string | null {
 }
 
 export function staffFetch(path: string, token: string, options?: RequestInit) {
+  const { headers: extraHeaders, ...restOptions } = options || {};
   return fetch(path, {
+    ...restOptions,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
-      ...options?.headers,
+      ...(extraHeaders as Record<string, string>),
     },
-    ...options,
   }).then((res) => {
     if (!res.ok) throw new Error(`API error: ${res.status}`);
     return res.json();
