@@ -26,11 +26,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 <Link
                   key={tab.href}
                   href={tab.href}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-semibold transition-colors ${
+                  className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold transition-colors min-w-0 ${
                     active ? 'text-primary' : 'text-gray-400'
                   }`}
                 >
-                  <span className="text-[22px]">{tab.icon}</span>
+                  <span className="text-[18px]">{tab.icon}</span>
                   {tab.label}
                 </Link>
               );
