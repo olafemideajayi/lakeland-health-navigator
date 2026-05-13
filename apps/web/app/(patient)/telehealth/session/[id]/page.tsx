@@ -1,50 +1,83 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { VideoRoom } from '@/components/telehealth/video-room';
+
+interface JoinData {
+  roomUrl: string;
+  token: string;
+}
 
 export default function VideoSessionPage() {
   const params = useParams();
-  const [status, setStatus] = useState<'waiting' | 'connecting' | 'connected' | 'ended'>('waiting');
-  const [elapsed, setElapsed] = useState(0);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
+  const router = useRouter();
+  const [joinData, setJoinData] = useState<JoinData | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'in-call' | 'ended' | 'error'>('loading');
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Simulate connection after 2 seconds
-    const timer = setTimeout(() => setStatus('connecting'), 1000);
-    const timer2 = setTimeout(() => setStatus('connected'), 3000);
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(timer2);
-    };
-  }, []);
+    // Get auth token from localStorage
+    const authToken = localStorage.getItem('staff_token') || localStorage.getItem('patient_token');
 
-  useEffect(() => {
-    if (status !== 'connected') return;
-    const interval = setInterval(() => setElapsed((e) => e + 1), 1000);
-    return () => clearInterval(interval);
-  }, [status]);
+    // Call the join endpoint to get Daily.co room URL and meeting token
+    fetch(`/api/appointments/${params.id}/join`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Unable to join this appointment');
+        return res.json();
+      })
+      .then((data: JoinData) => {
+        setJoinData(data);
+        setStatus('ready');
+      })
+      .catch((err) => {
+        setError(err.message);
+        setStatus('error');
+      });
+  }, [params.id]);
 
-  function formatTime(seconds: number) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <span className="text-3xl">📹</span>
+          </div>
+          <p className="text-white font-semibold">Preparing video room...</p>
+        </div>
+      </div>
+    );
   }
 
-  function endCall() {
-    setStatus('ended');
+  if (status === 'error') {
+    return (
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-6">
+          <span className="text-4xl">!</span>
+        </div>
+        <h1 className="text-xl font-bold text-white mb-2">Cannot Join</h1>
+        <p className="text-gray-400 text-sm mb-6">{error}</p>
+        <Link href="/appointments" className="px-6 py-3 bg-primary text-white rounded-xl font-semibold">
+          View Appointments
+        </Link>
+      </div>
+    );
   }
 
   if (status === 'ended') {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
         <div className="w-20 h-20 rounded-full bg-accent-light flex items-center justify-center mb-6">
-          <span className="text-4xl">✓</span>
+          <span className="text-4xl text-accent">&#10003;</span>
         </div>
         <h1 className="text-2xl font-bold text-white mb-2">Call Ended</h1>
-        <p className="text-gray-400 mb-2">Duration: {formatTime(elapsed)}</p>
         <p className="text-sm text-gray-500 mb-8">Your consultation summary will be available shortly.</p>
         <Link href="/appointments" className="w-full max-w-xs py-3.5 bg-primary text-white rounded-xl font-semibold text-center block">
           View Appointments
@@ -56,85 +89,42 @@ export default function VideoSessionPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
-      {/* Video area */}
-      <div className="flex-1 relative flex items-center justify-center">
-        {/* Remote video placeholder */}
-        <div className="w-full h-full flex items-center justify-center">
-          {status === 'waiting' && (
-            <div className="text-center">
-              <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">👨‍⚕️</span>
-              </div>
-              <p className="text-white font-semibold">Waiting for doctor to join...</p>
-              <p className="text-gray-500 text-sm mt-1">Please keep this page open</p>
-            </div>
-          )}
-          {status === 'connecting' && (
-            <div className="text-center">
-              <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
-                <span className="text-4xl">📹</span>
-              </div>
-              <p className="text-white font-semibold">Connecting...</p>
-            </div>
-          )}
-          {status === 'connected' && (
-            <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-primary/30 flex items-center justify-center mx-auto mb-4">
-                <span className="text-6xl">👨‍⚕️</span>
-              </div>
-              <p className="text-white font-semibold text-lg">Dr. Connected</p>
-              <p className="text-accent text-sm font-semibold mt-1">{formatTime(elapsed)}</p>
-            </div>
-          )}
+  if (status === 'ready' && joinData) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mb-6">
+          <span className="text-5xl">📹</span>
         </div>
-
-        {/* Self view (small) */}
-        <div className="absolute top-4 right-4 w-24 h-32 bg-gray-700 rounded-xl flex items-center justify-center border-2 border-gray-600">
-          {camOn ? (
-            <span className="text-2xl">🙂</span>
-          ) : (
-            <span className="text-gray-500 text-xs">Camera Off</span>
-          )}
-        </div>
-
-        {/* Connection indicator */}
-        {status === 'connected' && (
-          <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full">
-            <span className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-            <span className="text-white text-xs font-semibold">Live • {formatTime(elapsed)}</span>
-          </div>
-        )}
+        <h1 className="text-xl font-bold text-white mb-2">Ready to Join</h1>
+        <p className="text-gray-400 text-sm mb-8">
+          Make sure you&apos;re in a quiet, well-lit space with stable internet.
+        </p>
+        <button
+          onClick={() => setStatus('in-call')}
+          className="w-full max-w-xs py-3.5 bg-accent text-white rounded-xl font-semibold text-lg"
+        >
+          Join Video Call
+        </button>
+        <button
+          onClick={() => router.push('/appointments')}
+          className="mt-3 text-gray-400 text-sm font-semibold"
+        >
+          Cancel
+        </button>
       </div>
+    );
+  }
 
-      {/* Controls */}
-      <div className="bg-gray-800 px-6 py-5 safe-bottom">
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={() => setMicOn(!micOn)}
-            className={`w-14 h-14 rounded-full flex items-center justify-center text-xl transition-colors ${
-              micOn ? 'bg-gray-700 text-white' : 'bg-danger text-white'
-            }`}
-          >
-            {micOn ? '🎙️' : '🔇'}
-          </button>
-          <button
-            onClick={() => setCamOn(!camOn)}
-            className={`w-14 h-14 rounded-full flex items-center justify-center text-xl transition-colors ${
-              camOn ? 'bg-gray-700 text-white' : 'bg-danger text-white'
-            }`}
-          >
-            {camOn ? '📹' : '📷'}
-          </button>
-          <button
-            onClick={endCall}
-            className="w-14 h-14 rounded-full bg-danger flex items-center justify-center text-xl text-white"
-          >
-            📞
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  if (status === 'in-call' && joinData) {
+    return (
+      <VideoRoom
+        roomUrl={joinData.roomUrl}
+        token={joinData.token}
+        userName="Patient"
+        onLeave={() => setStatus('ended')}
+      />
+    );
+  }
+
+  return null;
 }

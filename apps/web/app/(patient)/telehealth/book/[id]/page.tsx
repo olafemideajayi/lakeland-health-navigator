@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+interface BookingResult {
+  id: string;
+  doctorToken?: string;
+  dailyRoomUrl?: string;
+}
+
 interface Doctor {
   id: string;
   name: string;
@@ -48,6 +54,8 @@ export default function BookAppointmentPage() {
   const [timeSlots] = useState(generateTimeSlots);
   const [booking, setBooking] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [bookingResult, setBookingResult] = useState<BookingResult | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetch('/api/doctors')
@@ -63,21 +71,43 @@ export default function BookAppointmentPage() {
     setBooking(true);
 
     try {
-      await fetch('/api/appointments', {
+      const authToken = localStorage.getItem('staff_token') || localStorage.getItem('patient_token');
+      const res = await fetch('/api/appointments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
         body: JSON.stringify({
           doctorId: doctor.id,
           startTime: selectedSlot.time,
           notes: reason,
         }),
       });
-    } catch (e) {
-      // In demo mode, proceed even if API isn't running
+      if (res.ok) {
+        const data = await res.json();
+        setBookingResult(data);
+      }
+    } catch {
+      // Proceed to confirmation even if API call fails
     }
 
     setBooking(false);
     setConfirmed(true);
+  }
+
+  function getDoctorLink() {
+    if (!bookingResult?.doctorToken) return null;
+    return `${window.location.origin}/join/${bookingResult.id}?token=${bookingResult.doctorToken}`;
+  }
+
+  function copyDoctorLink() {
+    const link = getDoctorLink();
+    if (link) {
+      navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   }
 
   if (!doctor) return <div className="pt-20 text-center text-gray-400">Loading...</div>;
@@ -119,19 +149,47 @@ export default function BookAppointmentPage() {
               </div>
             </div>
 
+            {/* Doctor share link */}
+            {bookingResult?.doctorToken && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left mb-6">
+                <p className="text-sm font-semibold text-amber-800 mb-1">Share with your doctor</p>
+                <p className="text-xs text-amber-700 mb-3">
+                  Send this link to {doctor.name} so they can join the video call:
+                </p>
+                <button
+                  onClick={copyDoctorLink}
+                  className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                    copied
+                      ? 'bg-accent text-white'
+                      : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                  }`}
+                >
+                  {copied ? 'Link Copied!' : 'Copy Doctor Link'}
+                </button>
+              </div>
+            )}
+
             <div className="bg-primary-light border border-primary/10 rounded-xl p-4 text-left mb-6">
               <p className="text-sm font-semibold text-primary mb-1">What&apos;s Next?</p>
               <ul className="text-xs text-gray-600 space-y-1">
-                <li>• A confirmation will be sent to your email/phone</li>
-                <li>• Video link will appear here 5 minutes before your appointment</li>
+                <li>• Share the doctor link above with your physician</li>
+                <li>• Join the video call at your appointment time</li>
                 <li>• Ensure stable internet and a quiet, well-lit space</li>
               </ul>
             </div>
 
-            <Link href="/appointments" className="block w-full py-3.5 bg-primary text-white rounded-xl font-semibold mb-3">
+            {bookingResult?.id && (
+              <Link
+                href={`/telehealth/session/${bookingResult.id}`}
+                className="block w-full py-3.5 bg-accent text-white rounded-xl font-semibold mb-3 text-center"
+              >
+                Join Video Call
+              </Link>
+            )}
+            <Link href="/appointments" className="block w-full py-3.5 bg-primary text-white rounded-xl font-semibold mb-3 text-center">
               View My Appointments
             </Link>
-            <Link href="/" className="block w-full py-3 text-gray-500 font-semibold text-sm">
+            <Link href="/" className="block w-full py-3 text-gray-500 font-semibold text-sm text-center">
               Back to Home
             </Link>
           </div>

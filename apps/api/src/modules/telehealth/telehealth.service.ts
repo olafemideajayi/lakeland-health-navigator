@@ -37,7 +37,11 @@ export class TelehealthService {
   async getAppointments(patientId: string) {
     return this.prisma.appointment.findMany({
       where: { patientId },
-      include: { doctor: true },
+      include: {
+        doctor: {
+          select: { id: true, name: true, specialty: true },
+        },
+      },
       orderBy: { startTime: 'desc' },
     });
   }
@@ -60,6 +64,13 @@ export class TelehealthService {
     return this.prisma.appointment.update({
       where: { id },
       data: { dailyRoomUrl: roomUrl },
+    });
+  }
+
+  async setDoctorToken(id: string, doctorToken: string) {
+    return this.prisma.appointment.update({
+      where: { id },
+      data: { doctorToken },
     });
   }
 }

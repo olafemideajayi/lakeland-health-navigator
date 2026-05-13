@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { TelehealthService } from './telehealth.service';
 import { DailyService } from './daily.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import * as crypto from 'crypto';
 
 @Controller()
 export class TelehealthController {
@@ -21,12 +22,31 @@ export class TelehealthController {
     @Request() req: any,
     @Body() body: { doctorId: string; startTime: string; notes?: string },
   ) {
-    return this.telehealthService.bookAppointment(
+    const appointment = await this.telehealthService.bookAppointment(
       req.user.sub,
       body.doctorId,
       new Date(body.startTime),
       body.notes,
     );
+
+    // Create Daily.co room immediately so we have a link to share
+    try {
+      const room = await this.dailyService.createRoom(appointment.id);
+      await this.telehealthService.setRoomUrl(appointment.id, room.url);
+
+      // Generate a doctor access token (simple hash — not auth, just link security)
+      const doctorToken = crypto
+        .createHash('sha256')
+        .update(`${appointment.id}-${process.env.JWT_SECRET || 'salt'}`)
+        .digest('hex')
+        .slice(0, 16);
+      await this.telehealthService.setDoctorToken(appointment.id, doctorToken);
+
+      return { ...appointment, dailyRoomUrl: room.url, doctorToken };
+    } catch {
+      // If Daily.co isn't configured, return appointment without room
+      return appointment;
+    }
   }
 
   @UseGuards(JwtAuthGuard)
@@ -65,5 +85,45 @@ export class TelehealthController {
   @Patch('appointments/:id/cancel')
   async cancelAppointment(@Request() req: any, @Param('id') id: string) {
     return this.telehealthService.cancelAppointment(id, req.user.sub);
+  }
+
+  // Public endpoint — doctor clicks link with token to get a Daily meeting token
+  @Post('appointments/:id/doctor-join')
+  async doctorJoin(
+    @Param('id') id: string,
+    @Body() body: { token: string },
+  ) {
+    const appointment = await this.telehealthService.getAppointmentById(id);
+    if (!appointment) throw new NotFoundException('Appointment not found');
+    if (!appointment.dailyRoomUrl) throw new NotFoundException('Video room not ready');
+
+    // Verify the doctor token
+    const expectedToken = crypto
+      .createHash('sha256')
+      .update(`${id}-${process.env.JWT_SECRET || 'salt'}`)
+      .digest('hex')
+      .slice(0, 16);
+
+    if (body.token !== expectedToken) {
+      throw new ForbiddenException('Invalid access link');
+    }
+
+    const roomName = `appt-${id}`;
+    const meetingToken = await this.dailyService.createMeetingToken(
+      roomName,
+      appointment.doctor.name,
+      true, // doctor is room owner
+    );
+
+    return {
+      roomUrl: appointment.dailyRoomUrl,
+      token: meetingToken,
+      appointment: {
+        id: appointment.id,
+        startTime: appointment.startTime,
+        notes: appointment.notes,
+        doctorName: appointment.doctor.name,
+      },
+    };
   }
 }
