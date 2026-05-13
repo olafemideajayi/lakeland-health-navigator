@@ -8,6 +8,7 @@ const tabs = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/controls', label: 'Controls', icon: '⚙️' },
   { href: '/queue', label: 'Queue', icon: '👥' },
+  { href: '/invites', label: 'Invites', icon: '✉️' },
 ];
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
